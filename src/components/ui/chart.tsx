@@ -1,3 +1,4 @@
+import * as React from 'react'; // Added explicit React import
 import * as RechartsPrimitive from 'recharts';
 import {
   NameType,
