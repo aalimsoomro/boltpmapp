@@ -15,7 +15,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 
       useEffect(() => {
         const { data: authListener } = supabase.auth.onAuthStateChange(
-          async (event, session) => {
+          async (_event, session) => { // Renamed 'event' to '_event' to indicate it's unused
             setUser(session?.user || null);
             setLoading(false);
           }

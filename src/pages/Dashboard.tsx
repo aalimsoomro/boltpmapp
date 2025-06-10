@@ -4,8 +4,8 @@ import { useAuth } from '@/context/AuthContext';
     import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
     import { BarChart, PieChart, Pie, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
     import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-    import { Progress } from '@/components/ui/progress';
-    import { Separator } from '@/components/ui/separator';
+    // import { Progress } from '@/components/ui/progress'; // Removed unused import
+    // import { Separator } from '@/components/ui/separator'; // Removed unused import
     import { BellIcon } from 'lucide-react'; // Using Lucide React for icons
     import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
