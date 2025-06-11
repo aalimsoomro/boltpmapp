@@ -1,221 +1,180 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/context/AuthContext';
-    import { Button } from '@/components/ui/button';
-    import { supabase } from '@/lib/supabaseClient';
-    import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-    import { BarChart, PieChart, Pie, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
-    import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-    // import { Progress } from '@/components/ui/progress'; // Removed unused import
-    // import { Separator } from '@/components/ui/separator'; // Removed unused import
-    import { BellIcon } from 'lucide-react'; // Using Lucide React for icons
-    import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Navigate } from 'react-router-dom';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+export default function Dashboard() {
+  console.log("Dashboard component rendering...");
+  const { user, loading: authLoading } = useAuth();
+  const [stats, setStats] = useState({ total: 0, ongoing: 0, completed: 0, delayed: 0 });
+  const [projectsLoading, setProjectsLoading] = useState(true);
+  const [activityFeed, setActivityFeed] = useState([]); // Placeholder for activity feed
 
-    // Dummy Data for Dashboard
-    const kpiData = [
-      { label: 'Total Projects', value: 45, color: 'bg-blue-500' },
-      { label: 'Ongoing', value: 28, color: 'bg-yellow-500' },
-      { label: 'Delayed', value: 5, color: 'bg-red-500' },
-      { label: 'Completed', value: 12, color: 'bg-green-500' },
-    ];
+  useEffect(() => {
+    console.log("Dashboard useEffect running. User:", user, "Auth Loading:", authLoading);
+    if (!authLoading && user) {
+      fetchStats();
+      fetchActivityFeed();
+    } else if (!authLoading && !user) {
+      console.log("User not authenticated, redirecting...");
+    }
+  }, [user, authLoading]);
 
-    const projectStatusData = [
-      { name: 'Ongoing', value: 28, color: '#facc15' }, // yellow-500
-      { name: 'Delayed', value: 5, color: '#ef4444' }, // red-500
-      { name: 'Completed', value: 12, color: '#22c55e' }, // green-500
-      { name: 'Not Started', value: 10, color: '#6b7280' }, // gray-500
-    ];
+  const fetchStats = async () => {
+    console.log("Fetching project stats...");
+    setProjectsLoading(true);
+    const { data, error, count } = await supabase
+      .from('projects')
+      .select('id, status', { count: 'exact' }); // Fetch status to count different types
 
-    const costData = [
-      { name: 'Project A', planned: 50000, actual: 45000 },
-      { name: 'Project B', planned: 75000, actual: 80000 },
-      { name: 'Project C', planned: 30000, actual: 28000 },
-      { name: 'Project D', planned: 100000, actual: 95000 },
-    ];
-
-    const upcomingActivityData = [
-      { task: 'Review Project Proposal', project: 'Project Alpha', dueDate: '2024-08-15', assignee: 'Alice' },
-      { task: 'Vendor Meeting', project: 'Project Beta', dueDate: '2024-08-18', assignee: 'Bob' },
-      { task: 'Submit Report', project: 'Project Gamma', dueDate: '2024-08-20', assignee: 'Charlie' },
-      { task: 'Plan Next Sprint', project: 'Project Alpha', dueDate: '2024-08-22', assignee: 'Alice' },
-    ];
-
-    const recentUpdatesData = [
-      { update: 'Project Alpha status updated to In Progress', time: '2 hours ago' },
-      { update: 'New file uploaded to Project Beta', time: '1 day ago' },
-      { update: 'Comment added on Activity X in Project Gamma', time: '1 day ago' },
-      { update: 'User Bob joined Project Beta', time: '2 days ago' },
-    ];
-
-
-    function Dashboard() {
-      const { user, loading } = useAuth();
-
-      const handleLogout = async () => {
-        const { error } = await supabase.auth.signOut();
-        if (error) {
-          console.error('Logout Error:', error);
-        }
-      };
-
-      if (loading) {
-        return <div>Loading...</div>; // Or a skeleton loader
-      }
-
-      if (!user) {
-        // This should ideally be handled by routing, but adding a fallback
-        return <div>Please log in.</div>;
-      }
-
-      return (
-        <div className="container mx-auto p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold">Dashboard</h1>
-            <div className="flex items-center space-x-4">
-               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <BellIcon className="h-5 w-5" />
-                    <span className="sr-only">View notifications</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {recentUpdatesData.map((update, index) => (
-                    <DropdownMenuItem key={index}>
-                      {update.update} <span className="ml-2 text-xs text-muted-foreground">{update.time}</span>
-                    </DropdownMenuItem>
-                  ))}
-                   {recentUpdatesData.length === 0 && (
-                     <DropdownMenuItem disabled>No new notifications</DropdownMenuItem>
-                   )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Button onClick={handleLogout}>Logout</Button>
-            </div>
-          </div>
-
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {kpiData.map((kpi, index) => (
-              <Card key={index}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{kpi.label}</CardTitle>
-                  {/* Optional: Add an icon here */}
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{kpi.value}</div>
-                  {/* Optional: Add a trend indicator */}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <Card>
-              <CardHeader>
-                <CardTitle>Project Status Overview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={projectStatusData}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                    >
-                      {projectStatusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Cost: Planned vs Actual</CardTitle>
-              </CardHeader>
-              <CardContent>
-                 <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={costData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
-                      <Legend />
-                      <Bar dataKey="planned" fill="#8884d8" name="Planned Cost" />
-                      <Bar dataKey="actual" fill="#82ca9d" name="Actual Cost" />
-                    </BarChart>
-                  </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Tables */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Upcoming Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Task</TableHead>
-                      <TableHead>Project</TableHead>
-                      <TableHead>Due Date</TableHead>
-                      <TableHead>Assignee</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {upcomingActivityData.map((activity, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{activity.task}</TableCell>
-                        <TableCell>{activity.project}</TableCell>
-                        <TableCell>{activity.dueDate}</TableCell>
-                        <TableCell>{activity.assignee}</TableCell>
-                      </TableRow>
-                    ))}
-                     {upcomingActivityData.length === 0 && (
-                       <TableRow>
-                         <TableCell colSpan={4} className="text-center">No upcoming activities.</TableCell>
-                       </TableRow>
-                     )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Updates</CardTitle>
-              </CardHeader>
-              <CardContent>
-                 <div className="space-y-4">
-                    {recentUpdatesData.map((update, index) => (
-                      <div key={index} className="border-b pb-2 last:border-b-0 last:pb-0">
-                        <p className="text-sm">{update.update}</p>
-                        <p className="text-xs text-muted-foreground">{update.time}</p>
-                      </div>
-                    ))}
-                    {recentUpdatesData.length === 0 && (
-                      <p className="text-sm text-center text-muted-foreground">No recent updates.</p>
-                    )}
-                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      );
+    if (error) {
+      console.error('Error fetching stats:', error);
+      setProjectsLoading(false);
+      // Optionally set stats to default or show an error state
+      return;
     }
 
-    export default Dashboard;
+    console.log("Stats fetched successfully:", data, "Count:", count);
+    const total = count || 0;
+    const completed = data?.filter(p => p.status === 'completed').length || 0;
+    const ongoing = data?.filter(p => p.status === 'ongoing').length || 0;
+    const delayed = data?.filter(p => p.status === 'delayed').length || 0;
+
+    setStats({ total, ongoing, completed, delayed });
+    setProjectsLoading(false);
+  };
+
+  const fetchActivityFeed = async () => {
+    console.log("Fetching activity feed...");
+    // Fetch recent activities or comments
+    // This is a placeholder, implement actual fetching logic
+    console.log("Fetching activity feed...");
+    // Example: Fetch last 10 comments or activity updates
+    // const { data, error } = await supabase
+    //   .from('comments') // Or 'activities' with a timestamp
+    //   .select('...')
+    //   .order('created_at', { ascending: false })
+    //   .limit(10);
+    // if (error) console.error('Error fetching activity feed:', error);
+    // else setActivityFeed(data);
+  };
+
+
+  if (authLoading) {
+    console.log("Auth loading...");
+    return <div className="flex items-center justify-center min-h-screen">Loading authentication...</div>;
+  }
+
+  if (!user) {
+    console.log("User is null, navigating to login...");
+    return <Navigate to="/login" />;
+  }
+
+  console.log("Rendering dashboard content. Stats:", stats);
+
+  return (
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-8">
+      <h1 className="text-3xl font-bold mb-8 text-gray-900 dark:text-gray-100">Dashboard</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              className="h-4 w-4 text-muted-foreground"
+            >
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{projectsLoading ? '...' : stats.total}</div>
+            <p className="text-xs text-muted-foreground">+20.1% from last month</p> {/* Placeholder */}
+          </CardContent>
+        </Card>
+         <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Ongoing</CardTitle>
+             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-dot"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="1"/></svg>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{projectsLoading ? '...' : stats.ongoing}</div>
+            <p className="text-xs text-muted-foreground">+15% from last month</p> {/* Placeholder */}
+          </CardContent>
+        </Card>
+         <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Completed</CardTitle>
+             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-circle-2"><circle cx="12" cy="12" r="10"/><path d="m8 15 2 2 6-6"/></svg>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{projectsLoading ? '...' : stats.completed}</div>
+            <p className="text-xs text-muted-foreground">+50% from last month</p> {/* Placeholder */}
+          </CardContent>
+        </Card>
+         <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Delayed</CardTitle>
+             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-timer-off"><path d="M10.5 2h3"/><path d="M8 7.9c-1.4 1.3-2.3 3.1-2.4 5.1-.4 6 5.1 11.5 11.1 11.9 1.6.1 3.2-.3 4.6-1.1"/><path d="M12 12v-1"/><path d="M16.2 16.2l-1.4-1.4"/><path d="M7.8 7.8l1.4 1.4"/><path d="m2 2 20 20"/></svg>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-500">{projectsLoading ? '...' : stats.delayed}</div>
+            <p className="text-xs text-muted-foreground">+5% from last month</p> {/* Placeholder */}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle>Project Status Overview</CardTitle>
+          </CardHeader>
+          <CardContent>
+             {projectsLoading ? (
+               <div>Loading chart data...</div>
+             ) : (
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart
+                  data={[
+                    { name: 'Ongoing', count: stats.ongoing },
+                    { name: 'Completed', count: stats.completed },
+                    { name: 'Delayed', count: stats.delayed },
+                  ]}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="count" fill="#8884d8" />
+                </BarChart>
+              </ResponsiveContainer>
+             )}
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Placeholder for activity feed */}
+            <ul>
+              <li>Activity 1...</li>
+              <li>Activity 2...</li>
+              <li>Activity 3...</li>
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
